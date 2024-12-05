@@ -30,7 +30,7 @@ RUN pip install torch==2.5.1+cu124 torchvision==0.20.1+cu124 torchaudio==2.5.1+c
     pip install easydict rembg onnxruntime onnxruntime-gpu numpy==2.0.0 plyfile huggingface-hub safetensors && \
     pip install git+https://github.com/NVlabs/nvdiffrast trimesh xatlas pyvista pymeshfix igraph spconv-cu120 && \
     pip install https://github.com/camenduru/wheels/releases/download/3090/kaolin-0.17.0-cp310-cp310-linux_x86_64.whl && \
-    pip install git+https://github.com/SarahWeiii/diso && \
+    pip install https://github.com/camenduru/wheels/releases/download/3090/diso-0.1.4-cp310-cp310-linux_x86_64.whl && \
     pip install git+https://github.com/EasternJournalist/utils3d.git@9a4eb15e4021b67b12c460c7057d642626897ec8 && \
     pip install https://huggingface.co/spaces/JeffreyXiang/TRELLIS/resolve/main/wheels/nvdiffrast-0.3.3-cp310-cp310-linux_x86_64.whl && \
     pip install https://huggingface.co/spaces/JeffreyXiang/TRELLIS/resolve/main/wheels/diff_gaussian_rasterization-0.0.0-cp310-cp310-linux_x86_64.whl && \
