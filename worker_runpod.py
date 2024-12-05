@@ -156,9 +156,13 @@ def generate(input):
             discord_token = os.getenv('com_camenduru_discord_token')
         job_id = values['job_id']
         del values['job_id']
-        default_filename = os.path.basename(result)
-        with open(result, "rb") as file:
+        default_filename = os.path.basename(result[0])
+        with open(result[0], "rb") as file:
             files = {default_filename: file.read()}
+        for path in result[1]:
+            filename = os.path.basename(path)
+            with open(path, "rb") as file:
+                files[filename] = file.read()
         payload = {"content": f"{json.dumps(values)} <@{discord_id}>"}
         response = requests.post(
             f"https://discord.com/api/v9/channels/{discord_channel}/messages",
@@ -167,8 +171,8 @@ def generate(input):
             files=files
         )
         response.raise_for_status()
-        result_url = response.json()['attachments'][0]['url']
-        notify_payload = {"jobId": job_id, "result": result_url, "status": "DONE"}
+        result_urls = [attachment['url'] for attachment in response.json()['attachments']]
+        notify_payload = {"jobId": job_id, "result": str(result_urls), "status": "DONE"}
         web_notify_uri = os.getenv('com_camenduru_web_notify_uri')
         web_notify_token = os.getenv('com_camenduru_web_notify_token')
         if(notify_uri == "notify_uri"):
@@ -176,7 +180,7 @@ def generate(input):
         else:
             requests.post(web_notify_uri, data=json.dumps(notify_payload), headers={'Content-Type': 'application/json', "Authorization": web_notify_token})
             requests.post(notify_uri, data=json.dumps(notify_payload), headers={'Content-Type': 'application/json', "Authorization": notify_token})
-        return {"jobId": job_id, "result": result_url, "status": "DONE"}
+        return {"jobId": job_id, "result": str(result_urls), "status": "DONE"}
     except Exception as e:
         error_payload = {"jobId": job_id, "status": "FAILED"}
         try:
