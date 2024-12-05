@@ -1,0 +1,11 @@
+{
+    "input_image": "https://files.catbox.moe/o5xi83.webp",
+    "seed": 0,
+    "randomize_seed": true,
+    "ss_guidance_strength": 7.5,
+    "ss_sampling_steps": 12,
+    "slat_guidance_strength": 3.0,
+    "slat_sampling_steps": 12,
+    "mesh_simplify": 0.95,
+    "texture_size": 1024
+}
