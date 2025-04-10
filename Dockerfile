@@ -44,6 +44,7 @@ RUN git clone --recursive https://github.com/Microsoft/TRELLIS /content/TRELLIS
 
 # Copy the custom script
 COPY ./worker_runpod_mod.py /content/TRELLIS/worker_runpod_mod.py
+COPY ./worker_runpod_gradio.py /content/TRELLIS/worker_runpod_gradio.py
 COPY --chmod=0755 ./run.sh /content/run.sh
 
 # Run the main script and keep the container alive

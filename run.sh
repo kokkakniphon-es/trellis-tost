@@ -35,6 +35,12 @@ export LD_LIBRARY_PATH="$CUDA_INSTALL_PATH/lib64:$LD_LIBRARY_PATH"
 # Check if model files are already downloaded
 if [ ! -f $PERSISTENT_VOLUME_PATH/model/pipeline.json ]; then
     echo "Downloading model files..."
+    aria2c --console-log-level=error -c -x 16 -s 16 -k 1M https://huggingface.co/JeffreyXiang/TRELLIS-text-xlarge/raw/main/pipeline.json -d $PERSISTENT_VOLUME_PATH/model -o pipeline.json && \
+    aria2c --console-log-level=error -c -x 16 -s 16 -k 1M https://huggingface.co/JeffreyXiang/TRELLIS-text-xlarge/raw/main/ckpts/slat_flow_txt_dit_XL_64l8p2_fp16.json -d $PERSISTENT_VOLUME_PATH/model/ckpts -o slat_flow_txt_dit_XL_64l8p2_fp16.json && \
+    aria2c --console-log-level=error -c -x 16 -s 16 -k 1M https://huggingface.co/JeffreyXiang/TRELLIS-text-xlarge/resolve/main/ckpts/slat_flow_txt_dit_XL_64l8p2_fp16.safetensors -d $PERSISTENT_VOLUME_PATH/model/ckpts -o slat_flow_txt_dit_XL_64l8p2_fp16.safetensors && \
+    aria2c --console-log-level=error -c -x 16 -s 16 -k 1M https://huggingface.co/JeffreyXiang/TRELLIS-text-xlarge/raw/main/ckpts/ss_flow_txt_dit_XL_16l8_fp16.json -d $PERSISTENT_VOLUME_PATH/model/ckpts -o ss_flow_txt_dit_XL_16l8_fp16.json && \
+    aria2c --console-log-level=error -c -x 16 -s 16 -k 1M https://huggingface.co/JeffreyXiang/TRELLIS-text-xlarge/resolve/main/ckpts/ss_flow_txt_dit_XL_16l8_fp16.safetensors -d $PERSISTENT_VOLUME_PATH/model/ckpts -o ss_flow_txt_dit_XL_16l8_fp16.safetensors && \
+
     aria2c --console-log-level=error -c -x 16 -s 16 -k 1M https://huggingface.co/JeffreyXiang/TRELLIS-image-large/raw/main/pipeline.json -d $PERSISTENT_VOLUME_PATH/model -o pipeline.json && \
     aria2c --console-log-level=error -c -x 16 -s 16 -k 1M https://huggingface.co/JeffreyXiang/TRELLIS-image-large/raw/main/ckpts/slat_dec_gs_swin8_B_64l8gs32_fp16.json -d $PERSISTENT_VOLUME_PATH/model/ckpts -o slat_dec_gs_swin8_B_64l8gs32_fp16.json && \
     aria2c --console-log-level=error -c -x 16 -s 16 -k 1M https://huggingface.co/JeffreyXiang/TRELLIS-image-large/resolve/main/ckpts/slat_dec_gs_swin8_B_64l8gs32_fp16.safetensors -d $PERSISTENT_VOLUME_PATH/model/ckpts -o slat_dec_gs_swin8_B_64l8gs32_fp16.safetensors && \
@@ -61,4 +67,4 @@ fi
 
 echo "Environment setup complete. Starting worker..."
 cd /content/TRELLIS
-python worker_runpod_mod.py
+python worker_runpod_gradio.py
