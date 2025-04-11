@@ -12,7 +12,8 @@ RUN apt update -y && apt install -y software-properties-common sudo wget git && 
     apt install -y python-is-python3 python3-pip \
     build-essential libgl1 libglib2.0-0 zlib1g-dev \
     libncurses5-dev libgdbm-dev libnss3-dev libssl-dev \
-    libreadline-dev libffi-dev nano aria2 curl unzip unrar ffmpeg git-lfs && \
+    libreadline-dev libffi-dev nano aria2 curl unzip unrar ffmpeg git-lfs \
+    nvidia-cuda-toolkit && \
     apt clean
 
 # Install Python dependencies
@@ -52,9 +53,10 @@ RUN git clone --recursive https://github.com/Microsoft/TRELLIS /content/TRELLIS
 # Copy the custom script
 COPY ./worker_runpod_mod.py /content/TRELLIS/worker_runpod_mod.py
 COPY ./worker_runpod_gradio.py /content/TRELLIS/worker_runpod_gradio.py
+COPY ./worker_runpod_text_gradio.py /content/TRELLIS/worker_runpod_text_gradio.py
 COPY --chmod=0755 ./run.sh /content/run.sh
 
 # Run the main script and keep the container alive
-CMD ["/bin/bash", "-c", "/content/run.sh && tail -f /dev/null"]
+CMD ["/bin/bash", "-c", "tail -f /dev/null"]
 
 # CMD ["sleep", "infinity"]
