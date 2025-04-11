@@ -4,6 +4,8 @@ set -e  # Exit immediately if a command exits with a non-zero status
 
 # Define the persistent volume path
 PERSISTENT_VOLUME_PATH="/workspace"
+IMAGE_MODEL_PATH="$PERSISTENT_VOLUME_PATH/image_model"
+TEXT_MODEL_PATH="$PERSISTENT_VOLUME_PATH/text_model"
 CUDA_INSTALL_PATH="$PERSISTENT_VOLUME_PATH/cuda"
 TORCH_CACHE_PATH="$PERSISTENT_VOLUME_PATH/.cache/torch/hub"
 
@@ -35,29 +37,31 @@ export LD_LIBRARY_PATH="$CUDA_INSTALL_PATH/lib64:$LD_LIBRARY_PATH"
 # Check if model files are already downloaded
 if [ ! -f $PERSISTENT_VOLUME_PATH/model/pipeline.json ]; then
     echo "Downloading model files..."
-    aria2c --console-log-level=error -c -x 16 -s 16 -k 1M https://huggingface.co/JeffreyXiang/TRELLIS-text-xlarge/raw/main/pipeline.json -d $PERSISTENT_VOLUME_PATH/model -o pipeline.json && \
-    aria2c --console-log-level=error -c -x 16 -s 16 -k 1M https://huggingface.co/JeffreyXiang/TRELLIS-text-xlarge/raw/main/ckpts/slat_flow_txt_dit_XL_64l8p2_fp16.json -d $PERSISTENT_VOLUME_PATH/model/ckpts -o slat_flow_txt_dit_XL_64l8p2_fp16.json && \
-    aria2c --console-log-level=error -c -x 16 -s 16 -k 1M https://huggingface.co/JeffreyXiang/TRELLIS-text-xlarge/resolve/main/ckpts/slat_flow_txt_dit_XL_64l8p2_fp16.safetensors -d $PERSISTENT_VOLUME_PATH/model/ckpts -o slat_flow_txt_dit_XL_64l8p2_fp16.safetensors && \
-    aria2c --console-log-level=error -c -x 16 -s 16 -k 1M https://huggingface.co/JeffreyXiang/TRELLIS-text-xlarge/raw/main/ckpts/ss_flow_txt_dit_XL_16l8_fp16.json -d $PERSISTENT_VOLUME_PATH/model/ckpts -o ss_flow_txt_dit_XL_16l8_fp16.json && \
-    aria2c --console-log-level=error -c -x 16 -s 16 -k 1M https://huggingface.co/JeffreyXiang/TRELLIS-text-xlarge/resolve/main/ckpts/ss_flow_txt_dit_XL_16l8_fp16.safetensors -d $PERSISTENT_VOLUME_PATH/model/ckpts -o ss_flow_txt_dit_XL_16l8_fp16.safetensors && \
 
-    aria2c --console-log-level=error -c -x 16 -s 16 -k 1M https://huggingface.co/JeffreyXiang/TRELLIS-image-large/raw/main/pipeline.json -d $PERSISTENT_VOLUME_PATH/model -o pipeline.json && \
-    aria2c --console-log-level=error -c -x 16 -s 16 -k 1M https://huggingface.co/JeffreyXiang/TRELLIS-image-large/raw/main/ckpts/slat_dec_gs_swin8_B_64l8gs32_fp16.json -d $PERSISTENT_VOLUME_PATH/model/ckpts -o slat_dec_gs_swin8_B_64l8gs32_fp16.json && \
-    aria2c --console-log-level=error -c -x 16 -s 16 -k 1M https://huggingface.co/JeffreyXiang/TRELLIS-image-large/resolve/main/ckpts/slat_dec_gs_swin8_B_64l8gs32_fp16.safetensors -d $PERSISTENT_VOLUME_PATH/model/ckpts -o slat_dec_gs_swin8_B_64l8gs32_fp16.safetensors && \
-    aria2c --console-log-level=error -c -x 16 -s 16 -k 1M https://huggingface.co/JeffreyXiang/TRELLIS-image-large/raw/main/ckpts/slat_dec_mesh_swin8_B_64l8m256c_fp16.json -d $PERSISTENT_VOLUME_PATH/model/ckpts -o slat_dec_mesh_swin8_B_64l8m256c_fp16.json && \
-    aria2c --console-log-level=error -c -x 16 -s 16 -k 1M https://huggingface.co/JeffreyXiang/TRELLIS-image-large/resolve/main/ckpts/slat_dec_mesh_swin8_B_64l8m256c_fp16.safetensors -d $PERSISTENT_VOLUME_PATH/model/ckpts -o slat_dec_mesh_swin8_B_64l8m256c_fp16.safetensors && \
-    aria2c --console-log-level=error -c -x 16 -s 16 -k 1M https://huggingface.co/JeffreyXiang/TRELLIS-image-large/raw/main/ckpts/slat_dec_rf_swin8_B_64l8r16_fp16.json -d $PERSISTENT_VOLUME_PATH/model/ckpts -o slat_dec_rf_swin8_B_64l8r16_fp16.json && \
-    aria2c --console-log-level=error -c -x 16 -s 16 -k 1M https://huggingface.co/JeffreyXiang/TRELLIS-image-large/resolve/main/ckpts/slat_dec_rf_swin8_B_64l8r16_fp16.safetensors -d $PERSISTENT_VOLUME_PATH/model/ckpts -o slat_dec_rf_swin8_B_64l8r16_fp16.safetensors && \
-    aria2c --console-log-level=error -c -x 16 -s 16 -k 1M https://huggingface.co/JeffreyXiang/TRELLIS-image-large/raw/main/ckpts/slat_enc_swin8_B_64l8_fp16.json -d $PERSISTENT_VOLUME_PATH/model/ckpts -o slat_enc_swin8_B_64l8_fp16.json && \
-    aria2c --console-log-level=error -c -x 16 -s 16 -k 1M https://huggingface.co/JeffreyXiang/TRELLIS-image-large/resolve/main/ckpts/slat_enc_swin8_B_64l8_fp16.safetensors -d $PERSISTENT_VOLUME_PATH/model/ckpts -o slat_enc_swin8_B_64l8_fp16.safetensors && \
-    aria2c --console-log-level=error -c -x 16 -s 16 -k 1M https://huggingface.co/JeffreyXiang/TRELLIS-image-large/raw/main/ckpts/slat_flow_img_dit_L_64l8p2_fp16.json -d $PERSISTENT_VOLUME_PATH/model/ckpts -o slat_flow_img_dit_L_64l8p2_fp16.json && \
-    aria2c --console-log-level=error -c -x 16 -s 16 -k 1M https://huggingface.co/JeffreyXiang/TRELLIS-image-large/resolve/main/ckpts/slat_flow_img_dit_L_64l8p2_fp16.safetensors -d $PERSISTENT_VOLUME_PATH/model/ckpts -o slat_flow_img_dit_L_64l8p2_fp16.safetensors && \
-    aria2c --console-log-level=error -c -x 16 -s 16 -k 1M https://huggingface.co/JeffreyXiang/TRELLIS-image-large/raw/main/ckpts/ss_dec_conv3d_16l8_fp16.json -d $PERSISTENT_VOLUME_PATH/model/ckpts -o ss_dec_conv3d_16l8_fp16.json && \
-    aria2c --console-log-level=error -c -x 16 -s 16 -k 1M https://huggingface.co/JeffreyXiang/TRELLIS-image-large/resolve/main/ckpts/ss_dec_conv3d_16l8_fp16.safetensors -d $PERSISTENT_VOLUME_PATH/model/ckpts -o ss_dec_conv3d_16l8_fp16.safetensors && \
-    aria2c --console-log-level=error -c -x 16 -s 16 -k 1M https://huggingface.co/JeffreyXiang/TRELLIS-image-large/raw/main/ckpts/ss_enc_conv3d_16l8_fp16.json -d $PERSISTENT_VOLUME_PATH/model/ckpts -o ss_enc_conv3d_16l8_fp16.json && \
-    aria2c --console-log-level=error -c -x 16 -s 16 -k 1M https://huggingface.co/JeffreyXiang/TRELLIS-image-large/resolve/main/ckpts/ss_enc_conv3d_16l8_fp16.safetensors -d $PERSISTENT_VOLUME_PATH/model/ckpts -o ss_enc_conv3d_16l8_fp16.safetensors && \
-    aria2c --console-log-level=error -c -x 16 -s 16 -k 1M https://huggingface.co/JeffreyXiang/TRELLIS-image-large/raw/main/ckpts/ss_flow_img_dit_L_16l8_fp16.json -d $PERSISTENT_VOLUME_PATH/model/ckpts -o ss_flow_img_dit_L_16l8_fp16.json && \
-    aria2c --console-log-level=error -c -x 16 -s 16 -k 1M https://huggingface.co/JeffreyXiang/TRELLIS-image-large/resolve/main/ckpts/ss_flow_img_dit_L_16l8_fp16.safetensors -d $PERSISTENT_VOLUME_PATH/model/ckpts -o ss_flow_img_dit_L_16l8_fp16.safetensors && \
+    aria2c --console-log-level=error -c -x 16 -s 16 -k 1M https://huggingface.co/JeffreyXiang/TRELLIS-image-large/raw/main/pipeline.json -d $IMAGE_MODEL_PATH/model -o pipeline.json && \
+    aria2c --console-log-level=error -c -x 16 -s 16 -k 1M https://huggingface.co/JeffreyXiang/TRELLIS-image-large/raw/main/ckpts/slat_dec_gs_swin8_B_64l8gs32_fp16.json -d $IMAGE_MODEL_PATH/model/ckpts -o slat_dec_gs_swin8_B_64l8gs32_fp16.json && \
+    aria2c --console-log-level=error -c -x 16 -s 16 -k 1M https://huggingface.co/JeffreyXiang/TRELLIS-image-large/resolve/main/ckpts/slat_dec_gs_swin8_B_64l8gs32_fp16.safetensors -d $IMAGE_MODEL_PATH/model/ckpts -o slat_dec_gs_swin8_B_64l8gs32_fp16.safetensors && \
+    aria2c --console-log-level=error -c -x 16 -s 16 -k 1M https://huggingface.co/JeffreyXiang/TRELLIS-image-large/raw/main/ckpts/slat_dec_mesh_swin8_B_64l8m256c_fp16.json -d $IMAGE_MODEL_PATH/model/ckpts -o slat_dec_mesh_swin8_B_64l8m256c_fp16.json && \
+    aria2c --console-log-level=error -c -x 16 -s 16 -k 1M https://huggingface.co/JeffreyXiang/TRELLIS-image-large/resolve/main/ckpts/slat_dec_mesh_swin8_B_64l8m256c_fp16.safetensors -d $IMAGE_MODEL_PATH/model/ckpts -o slat_dec_mesh_swin8_B_64l8m256c_fp16.safetensors && \
+    aria2c --console-log-level=error -c -x 16 -s 16 -k 1M https://huggingface.co/JeffreyXiang/TRELLIS-image-large/raw/main/ckpts/slat_dec_rf_swin8_B_64l8r16_fp16.json -d $IMAGE_MODEL_PATH/model/ckpts -o slat_dec_rf_swin8_B_64l8r16_fp16.json && \
+    aria2c --console-log-level=error -c -x 16 -s 16 -k 1M https://huggingface.co/JeffreyXiang/TRELLIS-image-large/resolve/main/ckpts/slat_dec_rf_swin8_B_64l8r16_fp16.safetensors -d $IMAGE_MODEL_PATH/model/ckpts -o slat_dec_rf_swin8_B_64l8r16_fp16.safetensors && \
+    aria2c --console-log-level=error -c -x 16 -s 16 -k 1M https://huggingface.co/JeffreyXiang/TRELLIS-image-large/raw/main/ckpts/slat_enc_swin8_B_64l8_fp16.json -d $IMAGE_MODEL_PATH/model/ckpts -o slat_enc_swin8_B_64l8_fp16.json && \
+    aria2c --console-log-level=error -c -x 16 -s 16 -k 1M https://huggingface.co/JeffreyXiang/TRELLIS-image-large/resolve/main/ckpts/slat_enc_swin8_B_64l8_fp16.safetensors -d $IMAGE_MODEL_PATH/model/ckpts -o slat_enc_swin8_B_64l8_fp16.safetensors && \
+    aria2c --console-log-level=error -c -x 16 -s 16 -k 1M https://huggingface.co/JeffreyXiang/TRELLIS-image-large/raw/main/ckpts/slat_flow_img_dit_L_64l8p2_fp16.json -d $IMAGE_MODEL_PATH/model/ckpts -o slat_flow_img_dit_L_64l8p2_fp16.json && \
+    aria2c --console-log-level=error -c -x 16 -s 16 -k 1M https://huggingface.co/JeffreyXiang/TRELLIS-image-large/resolve/main/ckpts/slat_flow_img_dit_L_64l8p2_fp16.safetensors -d $IMAGE_MODEL_PATH/model/ckpts -o slat_flow_img_dit_L_64l8p2_fp16.safetensors && \
+    aria2c --console-log-level=error -c -x 16 -s 16 -k 1M https://huggingface.co/JeffreyXiang/TRELLIS-image-large/raw/main/ckpts/ss_dec_conv3d_16l8_fp16.json -d $IMAGE_MODEL_PATH/model/ckpts -o ss_dec_conv3d_16l8_fp16.json && \
+    aria2c --console-log-level=error -c -x 16 -s 16 -k 1M https://huggingface.co/JeffreyXiang/TRELLIS-image-large/resolve/main/ckpts/ss_dec_conv3d_16l8_fp16.safetensors -d $IMAGE_MODEL_PATH/model/ckpts -o ss_dec_conv3d_16l8_fp16.safetensors && \
+    aria2c --console-log-level=error -c -x 16 -s 16 -k 1M https://huggingface.co/JeffreyXiang/TRELLIS-image-large/raw/main/ckpts/ss_enc_conv3d_16l8_fp16.json -d $IMAGE_MODEL_PATH/model/ckpts -o ss_enc_conv3d_16l8_fp16.json && \
+    aria2c --console-log-level=error -c -x 16 -s 16 -k 1M https://huggingface.co/JeffreyXiang/TRELLIS-image-large/resolve/main/ckpts/ss_enc_conv3d_16l8_fp16.safetensors -d $IMAGE_MODEL_PATH/model/ckpts -o ss_enc_conv3d_16l8_fp16.safetensors && \
+    aria2c --console-log-level=error -c -x 16 -s 16 -k 1M https://huggingface.co/JeffreyXiang/TRELLIS-image-large/raw/main/ckpts/ss_flow_img_dit_L_16l8_fp16.json -d $IMAGE_MODEL_PATH/model/ckpts -o ss_flow_img_dit_L_16l8_fp16.json && \
+    aria2c --console-log-level=error -c -x 16 -s 16 -k 1M https://huggingface.co/JeffreyXiang/TRELLIS-image-large/resolve/main/ckpts/ss_flow_img_dit_L_16l8_fp16.safetensors -d $IMAGE_MODEL_PATH/model/ckpts -o ss_flow_img_dit_L_16l8_fp16.safetensors && \
+
+    aria2c --console-log-level=error -c -x 16 -s 16 -k 1M https://huggingface.co/JeffreyXiang/TRELLIS-text-xlarge/raw/main/pipeline.json -d $TEXT_MODEL_PATH/model -o pipeline.json && \
+    aria2c --console-log-level=error -c -x 16 -s 16 -k 1M https://huggingface.co/JeffreyXiang/TRELLIS-text-xlarge/raw/main/ckpts/slat_flow_txt_dit_XL_64l8p2_fp16.json -d $TEXT_MODEL_PATH/model/ckpts -o slat_flow_txt_dit_XL_64l8p2_fp16.json && \
+    aria2c --console-log-level=error -c -x 16 -s 16 -k 1M https://huggingface.co/JeffreyXiang/TRELLIS-text-xlarge/resolve/main/ckpts/slat_flow_txt_dit_XL_64l8p2_fp16.safetensors -d $TEXT_MODEL_PATH/model/ckpts -o slat_flow_txt_dit_XL_64l8p2_fp16.safetensors && \
+    aria2c --console-log-level=error -c -x 16 -s 16 -k 1M https://huggingface.co/JeffreyXiang/TRELLIS-text-xlarge/raw/main/ckpts/ss_flow_txt_dit_XL_16l8_fp16.json -d $TEXT_MODEL_PATH/model/ckpts -o ss_flow_txt_dit_XL_16l8_fp16.json && \
+    aria2c --console-log-level=error -c -x 16 -s 16 -k 1M https://huggingface.co/JeffreyXiang/TRELLIS-text-xlarge/resolve/main/ckpts/ss_flow_txt_dit_XL_16l8_fp16.safetensors -d $TEXT_MODEL_PATH/model/ckpts -o ss_flow_txt_dit_XL_16l8_fp16.safetensors && \
+
     aria2c --console-log-level=error -c -x 16 -s 16 -k 1M https://github.com/facebookresearch/dinov2/zipball/main -d $TORCH_CACHE_PATH -o main.zip && \
     aria2c --console-log-level=error -c -x 16 -s 16 -k 1M https://dl.fbaipublicfiles.com/dinov2/dinov2_vitl14/dinov2_vitl14_reg4_pretrain.pth -d $TORCH_CACHE_PATH/checkpoints -o dinov2_vitl14_reg4_pretrain.pth && \
     aria2c --console-log-level=error -c -x 16 -s 16 -k 1M https://github.com/danielgatis/rembg/releases/download/v0.0.0/u2net.onnx -d /home/camenduru/.u2net -o u2net.onnx
@@ -67,4 +71,3 @@ fi
 
 echo "Environment setup complete. Starting worker..."
 cd /content/TRELLIS
-python worker_runpod_gradio.py

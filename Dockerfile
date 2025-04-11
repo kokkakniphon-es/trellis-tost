@@ -24,6 +24,10 @@ RUN pip install torch==2.5.1+cu124 torchvision==0.20.1+cu124 \
     pip install opencv-contrib-python imageio imageio-ffmpeg ffmpeg-python av runpod easydict rembg onnxruntime \
     onnxruntime-gpu numpy==2.0.0 plyfile huggingface-hub safetensors
 
+RUN pip install transformers && \
+    pip install open3d && \
+    pip install gradio==4.44.1 gradio_litmodel3d==0.0.1
+
 # Install TRELLIS-specific dependencies
 RUN pip install git+https://github.com/NVlabs/nvdiffrast trimesh xatlas pyvista pymeshfix igraph spconv-cu120 && \
     pip install https://github.com/camenduru/wheels/releases/download/3090/kaolin-0.17.0-cp310-cp310-linux_x86_64.whl && \
@@ -31,6 +35,9 @@ RUN pip install git+https://github.com/NVlabs/nvdiffrast trimesh xatlas pyvista 
     pip install https://github.com/camenduru/wheels/releases/download/3090/utils3d-0.0.2-py3-none-any.whl && \
     pip install https://huggingface.co/spaces/JeffreyXiang/TRELLIS/resolve/main/wheels/nvdiffrast-0.3.3-cp310-cp310-linux_x86_64.whl && \
     pip install https://huggingface.co/spaces/JeffreyXiang/TRELLIS/resolve/main/wheels/diff_gaussian_rasterization-0.0.0-cp310-cp310-linux_x86_64.whl
+
+# Downgrade to fix gradio
+RUN pip install --force-reinstall -v "pydantic==2.10.6"
 
 # Add user and set permissions
 RUN adduser --disabled-password --gecos '' camenduru && \

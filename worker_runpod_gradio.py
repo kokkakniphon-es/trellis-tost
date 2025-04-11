@@ -110,7 +110,7 @@ def download_file(url, save_dir, file_name):
         file.write(response.content)
     return file_path
 
-pipeline = TrellisImageTo3DPipeline.from_pretrained("/content/model")
+pipeline = TrellisImageTo3DPipeline.from_pretrained("/workspace/image_model/model")
 pipeline.cuda()
 
 def generate(input):
@@ -179,4 +179,4 @@ with gr.Blocks(css=".gradio-container {max-width: 1080px !important}", analytics
         outputs=[video_output, glb_output]
     )
 
-demo.queue().launch(inline=False, share=False, debug=True, server_name='0.0.0.0', server_port=7860, allowed_paths=["/content"])
+demo.queue().launch(inline=False, share=False, debug=True, server_name='0.0.0.0', server_port=8000, allowed_paths=["/content"])

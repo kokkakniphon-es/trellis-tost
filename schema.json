@@ -1,6 +1,7 @@
 {
   "$schema": "http://json-schema.org/draft-04/hyper-schema#",
   "type": "object",
+  "additionalProperties": false,
   "properties": {
     "readme": {
       "type": "string",
