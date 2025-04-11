@@ -23,7 +23,7 @@ if [ ! -d "$CUDA_INSTALL_PATH" ]; then
     echo "Installing NVIDIA CUDA Toolkit..."
     aria2c --console-log-level=error -c -x 16 -s 16 -k 1M \
         https://developer.download.nvidia.com/compute/cuda/12.6.2/local_installers/cuda_12.6.2_560.35.03_linux.run -d $PERSISTENT_VOLUME_PATH -o cuda_12.6.2.run && \
-        sh $PERSISTENT_VOLUME_PATH/cuda_12.6.2.run --silent --toolkit --installpath=$CUDA_INSTALL_PATH && \
+        sh $PERSISTENT_VOLUME_PATH/cuda_12.6.2.run --silent --toolkit --installpath=$CUDA_INSTALL_PATH --defaultroot=$CUDA_INSTALL_PATH && \
         echo "$CUDA_INSTALL_PATH/lib64" | sudo tee -a /etc/ld.so.conf && sudo ldconfig && \
         rm -f $PERSISTENT_VOLUME_PATH/cuda_12.6.2.run
 else
@@ -33,6 +33,7 @@ fi
 # Update PATH and LD_LIBRARY_PATH
 export PATH="$CUDA_INSTALL_PATH/bin:$PATH"
 export LD_LIBRARY_PATH="$CUDA_INSTALL_PATH/lib64:$LD_LIBRARY_PATH"
+export CUDA_HOME="$CUDA_INSTALL_PATH"
 
 # Check if model files are already downloaded
 if [ ! -f $PERSISTENT_VOLUME_PATH/model/pipeline.json ]; then
