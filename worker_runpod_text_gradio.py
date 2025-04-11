@@ -12,6 +12,7 @@ from trellis.pipelines import TrellisTextTo3DPipeline
 from trellis.representations import Gaussian, MeshExtractResult
 from trellis.utils import render_utils, postprocessing_utils
 import open3d as o3d
+import trimesh
 
 MAX_SEED = np.iinfo(np.int32).max
 TMP_DIR = "/content"
@@ -39,6 +40,37 @@ def pack_state(gs: Gaussian, mesh: MeshExtractResult, trial_id: str) -> dict:
         },
         'trial_id': trial_id,
     }
+
+def glb_to_mesh_edict(glb_path: str) -> edict:
+    """
+    Convert a GLB file to an edict containing vertices and faces as CUDA tensors.
+    
+    Args:
+        glb_path (str): Path to the GLB file
+        
+    Returns:
+        edict: EasyDict containing vertices and faces as CUDA tensors
+    """
+    # Load the GLB file
+    scene = trimesh.load(glb_path)
+    
+    # If the scene has multiple meshes, combine them into one
+    if isinstance(scene, trimesh.Scene):
+        # Combine all meshes in the scene
+        mesh = trimesh.util.concatenate(
+            tuple(trimesh.Trimesh(vertices=g.vertices, faces=g.faces) 
+                  for g in scene.geometry.values())
+        )
+    else:
+        mesh = scene
+        
+    # Convert to edict with CUDA tensors
+    mesh_edict = edict(
+        vertices=torch.tensor(mesh.vertices, dtype=torch.float32, device='cuda'),
+        faces=torch.tensor(mesh.faces, dtype=torch.int64, device='cuda'),
+    )
+    
+    return mesh_edict
 
 def unpack_state(state: dict) -> Tuple[Gaussian, edict, str]:
     gs = Gaussian(
@@ -190,12 +222,11 @@ def run_variant(mesh, prompt: str, seed: int = 0, randomize_seed: bool = True,
     state = pack_state(outputs['gaussian'][0], outputs['mesh'][0], str(trial_id))
     return state, video_path
 
-def variant_wrapper(state, variant_prompt, variant_seed, variant_randomize_seed,
+def variant_wrapper(mesh, variant_prompt, variant_seed, variant_randomize_seed,
                    variant_guidance_strength, variant_sampling_steps):
     if state is None:
         return None, None
     
-    _, mesh, _ = unpack_state(state)
     variant_state, variant_video = run_variant(
         mesh=mesh,
         prompt=variant_prompt,
@@ -207,40 +238,62 @@ def variant_wrapper(state, variant_prompt, variant_seed, variant_randomize_seed,
     variant_glb = extract_glb(variant_state)
     return variant_video, variant_glb
 
+def load_glb_mesh(glb_path):
+    # Load GLB file and convert to mesh format
+    scene = trimesh.load(glb_path)
+    if isinstance(scene, trimesh.Scene):
+        # If it's a scene, get the first mesh
+        mesh = next(iter(scene.geometry.values()))
+    else:
+        mesh = scene
+        
+    # Convert to our format
+    vertices = torch.tensor(mesh.vertices, device='cuda')
+    faces = torch.tensor(mesh.faces, device='cuda')
+    return edict(vertices=vertices, faces=faces)
+
 with gr.Blocks(css=".gradio-container {max-width: 1080px !important}", analytics_enabled=False) as demo:
     state = gr.State(None)  # Add state to store the mesh
     
-    with gr.Row():
-        with gr.Column():
-            # Original generation UI
-            input_image = gr.Image(type="filepath", label="Input Image")
-            seed = gr.Number(label="Seed (0 for Random)", value=0, precision=0)
-            randomize_seed = gr.Checkbox(label="Randomize Seed", value=True)
-            ss_guidance_strength = gr.Slider(label="SS Guidance Strength", minimum=0.1, maximum=20.0, value=7.5, step=0.1)
-            ss_sampling_steps = gr.Slider(label="SS Sampling Steps", minimum=1, maximum=50, value=12, step=1)
-            slat_guidance_strength = gr.Slider(label="SLAT Guidance Strength", minimum=0.1, maximum=20.0, value=3.0, step=0.1)
-            slat_sampling_steps = gr.Slider(label="SLAT Sampling Steps", minimum=1, maximum=50, value=12, step=1)
-            mesh_simplify = gr.Slider(label="Mesh Simplify", minimum=0.1, maximum=1.0, value=0.95, step=0.01)
-            texture_size = gr.Slider(label="Texture Size", minimum=256, maximum=4096, value=1024, step=128)
-            generate_button = gr.Button("Generate")
-            
-            # Add variant generation UI
-            gr.Markdown("## Generate Variant")
-            variant_prompt = gr.Textbox(label="Variant Prompt", placeholder="Enter prompt for variant generation...")
-            variant_seed = gr.Number(label="Variant Seed (0 for Random)", value=0, precision=0)
-            variant_randomize_seed = gr.Checkbox(label="Randomize Variant Seed", value=True)
-            variant_guidance_strength = gr.Slider(label="Variant Guidance Strength", minimum=0.1, maximum=20.0, value=7.5, step=0.1)
-            variant_sampling_steps = gr.Slider(label="Variant Sampling Steps", minimum=1, maximum=50, value=12, step=1)
-            variant_button = gr.Button("Generate Variant")
+    with gr.Tabs():
+        with gr.Tab("Image to 3D"):
+            with gr.Row():
+                with gr.Column():
+                    # Original generation UI
+                    input_image = gr.Image(type="filepath", label="Input Image")
+                    seed = gr.Number(label="Seed (0 for Random)", value=0, precision=0)
+                    randomize_seed = gr.Checkbox(label="Randomize Seed", value=True)
+                    ss_guidance_strength = gr.Slider(label="SS Guidance Strength", minimum=0.1, maximum=20.0, value=7.5, step=0.1)
+                    ss_sampling_steps = gr.Slider(label="SS Sampling Steps", minimum=1, maximum=50, value=12, step=1)
+                    slat_guidance_strength = gr.Slider(label="SLAT Guidance Strength", minimum=0.1, maximum=20.0, value=3.0, step=0.1)
+                    slat_sampling_steps = gr.Slider(label="SLAT Sampling Steps", minimum=1, maximum=50, value=12, step=1)
+                    mesh_simplify = gr.Slider(label="Mesh Simplify", minimum=0.1, maximum=1.0, value=0.95, step=0.01)
+                    texture_size = gr.Slider(label="Texture Size", minimum=256, maximum=4096, value=1024, step=128)
+                    generate_button = gr.Button("Generate")
 
-        with gr.Column():
-            # Original outputs
-            video_output = gr.Video(label="Generated Video")
-            glb_output = gr.File(label="Generated GLB File")
-            
-            # Variant outputs
-            variant_video_output = gr.Video(label="Variant Video")
-            variant_glb_output = gr.File(label="Variant GLB File")
+                with gr.Column():
+                    video_output = gr.Video(label="Generated Video")
+                    glb_output = gr.File(label="Generated GLB File")
+
+        with gr.Tab("Generate Variant"):
+            with gr.Row():
+                with gr.Column():
+                    # Input options for variant
+                    gr.Markdown("### Input Options")
+                    input_type = gr.Radio(["Upload GLB", "Use Previous Output"], label="Input Type", value="Upload GLB")
+                    uploaded_glb = gr.File(label="Upload GLB File", file_types=[".glb"])
+                    
+                    gr.Markdown("### Variant Parameters")
+                    variant_prompt = gr.Textbox(label="Variant Prompt", placeholder="Enter prompt for variant generation...")
+                    variant_seed = gr.Number(label="Variant Seed (0 for Random)", value=0, precision=0)
+                    variant_randomize_seed = gr.Checkbox(label="Randomize Variant Seed", value=True)
+                    variant_guidance_strength = gr.Slider(label="Variant Guidance Strength", minimum=0.1, maximum=20.0, value=7.5, step=0.1)
+                    variant_sampling_steps = gr.Slider(label="Variant Sampling Steps", minimum=1, maximum=50, value=12, step=1)
+                    variant_button = gr.Button("Generate Variant")
+
+                with gr.Column():
+                    variant_video_output = gr.Video(label="Variant Video")
+                    variant_glb_output = gr.File(label="Variant GLB File")
 
     # Update the generate button click event
     generate_outputs = generate_button.click(
@@ -250,11 +303,26 @@ with gr.Blocks(css=".gradio-container {max-width: 1080px !important}", analytics
         outputs=[video_output, glb_output, state]
     )
 
+    def process_variant_input(input_type, uploaded_glb, state, *variant_params):
+        if input_type == "Upload GLB":
+            if not uploaded_glb:
+                raise gr.Error("Please upload a GLB file")
+            mesh = glb_to_mesh_edict(uploaded_glb)
+        else:
+            if state is None:
+                raise gr.Error("No previous output available. Please generate a 3D model first or upload a GLB file.")
+            _, mesh, _ = unpack_state(state)
+        
+        return variant_wrapper(mesh, *variant_params)
+
     # Add variant button click event
     variant_button.click(
-        fn=variant_wrapper,
-        inputs=[state, variant_prompt, variant_seed, variant_randomize_seed,
-                variant_guidance_strength, variant_sampling_steps],
+        fn=process_variant_input,
+        inputs=[
+            input_type, uploaded_glb, state,
+            variant_prompt, variant_seed, variant_randomize_seed,
+            variant_guidance_strength, variant_sampling_steps
+        ],
         outputs=[variant_video_output, variant_glb_output]
     )
 
